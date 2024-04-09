@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -13,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/Coffelius/rofi-code/workspace"
 	"github.com/Wing924/shellwords"
@@ -120,7 +118,7 @@ func loadJSON(filename string, v interface{}) error {
 		return err
 	}
 	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return err
 	}
@@ -198,7 +196,7 @@ func contractTilde(s string) string {
 	return s
 }
 
-func runRofi(workspaces workspace.WorkspaceCollection) {
+func runRofi(workspaces workspace.WorkspaceCollection) string {
 	args, err := shellwords.Split(*rofiCmd)
 	if err != nil {
 		log.Fatal(err)
@@ -230,14 +228,12 @@ func runRofi(workspaces workspace.WorkspaceCollection) {
 	selectedItem = expandTilde(selectedItem)
 	args = append(args, selectedItem)
 
-	executable, err := exec.LookPath(args[0])
+	cmd = exec.Command(args[0], args[1:]...)
+	err = cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = syscall.Exec(executable, args, os.Environ())
-	if err != nil {
-		log.Fatal(err)
-	}
+	return selectedItem
 }
 
 func getWorkspacesFromUserWorkspace(basePath string) workspace.WorkspaceCollection {
@@ -344,5 +340,6 @@ func main() {
 		return
 	}
 
-	runRofi(workspaces)
+	selectedPath := runRofi(workspaces)
+	fmt.Println(selectedPath)
 }
